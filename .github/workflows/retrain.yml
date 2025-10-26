@@ -26,16 +26,19 @@ jobs:
       - name: Train model
         run: |
           echo "Running training..."
+          mkdir -p artifacts
           python scripts/train.py > artifacts/train_log.txt 2>&1 || exit 1
 
       - name: Evaluate model
         run: |
           echo "Evaluating model..."
+          mkdir -p artifacts
           python scripts/evaluate.py > artifacts/eval_log.txt 2>&1 || exit 1
 
       - name: Promote/Demote model
         run: |
           echo "Running promotion logic..."
+          mkdir -p artifacts
           python scripts/promote.py > artifacts/promotion_log.txt 2>&1 || exit 1
 
       - name: Archive logs and metrics
