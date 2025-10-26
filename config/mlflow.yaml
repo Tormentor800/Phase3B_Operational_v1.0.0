@@ -1,4 +1,4 @@
-﻿tracking_uri: 
-registry_uri: 
+﻿tracking_uri: file:/tmp/mlruns
+registry_uri: file:/tmp/mlruns
 experiment_name: Phase3/Models
 model_name: phase3_model
