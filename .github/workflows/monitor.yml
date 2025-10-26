@@ -1,0 +1,15 @@
+﻿name: Monitor
+on:
+  schedule: [{ cron: '0 */6 * * *' }]
+  workflow_dispatch: {}
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install -r requirements.txt
+      - run: python scripts/monitor.py
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

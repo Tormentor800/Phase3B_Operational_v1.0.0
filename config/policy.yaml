@@ -1,0 +1,9 @@
+﻿# same knobs as 3A + market/line lists
+markets:
+  - MLB
+  - NHL
+  - NBA
+lines:
+  - -1
+  - -1.5
+  - -2
