@@ -1,15 +1,35 @@
-﻿name: Monitor
+﻿name: Monitor (Daily Health Check)
+
 on:
-  schedule: [{ cron: '0 */6 * * *' }]
-  workflow_dispatch: {}
+  schedule:
+    - cron: "0 9 * * *" # every day at 09:00 UTC
+  workflow_dispatch:
+
 jobs:
   monitor:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: '3.11' }
-      - run: pip install -r requirements.txt
-      - run: python scripts/monitor.py
-    env:
-      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install mlflow pandas
+
+      - name: Run monitoring check
+        run: |
+          echo "Running pipeline health monitor..."
+          mkdir -p artifacts
+          python scripts/monitor.py > artifacts/monitor_log.txt 2>&1 || exit 1
+
+      - name: Upload monitoring artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: monitor-artifacts
+          path: artifacts/
