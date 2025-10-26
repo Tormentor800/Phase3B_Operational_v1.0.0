@@ -1,4 +1,4 @@
-﻿name: Retrain (Full CI/CD)
+﻿name: Retrain (Full CI/CD + Auto-Promotion)
 
 on:
   workflow_dispatch:
@@ -21,20 +21,27 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pandas mlflow
 
-      - name: Run training
-        run: python scripts/train.py
+      - name: Train model
+        run: |
+          echo "Running training..."
+          python scripts/train.py > artifacts/train_log.txt 2>&1 || exit 1
 
-      - name: Run evaluation
-        run: python scripts/evaluate.py
+      - name: Evaluate model
+        run: |
+          echo "Evaluating model..."
+          python scripts/evaluate.py > artifacts/eval_log.txt 2>&1 || exit 1
 
-      - name: Promote model
-        run: python scripts/promote.py
+      - name: Promote/Demote model
+        run: |
+          echo "Running promotion logic..."
+          python scripts/promote.py > artifacts/promotion_log.txt 2>&1 || exit 1
 
-      - name: Archive artifacts
+      - name: Archive logs and metrics
         uses: actions/upload-artifact@v4
         with:
-          name: model-artifacts
+          name: retrain-artifacts
           path: |
             artifacts/
             mlruns/
