@@ -1,0 +1,35 @@
+name: Ingest (Multi-Book Audit)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * *"  # 08:00 UTC daily ingest check
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+
+      - name: Run hardened multi-book ingest
+        run: |
+          echo "Running hardened ingest..."
+          mkdir -p artifacts
+          python scripts/ingest_books.py > artifacts/ingest_log.txt 2>&1
+
+      - name: Upload ingest artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ingest-artifacts
+          path: artifacts/
