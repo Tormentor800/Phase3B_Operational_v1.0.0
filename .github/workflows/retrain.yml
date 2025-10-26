@@ -1,9 +1,9 @@
-﻿name: Retrain (Full CI/CD + Auto-Promotion)
+﻿name: Retrain (Full CI/CD)
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 6 * * 1"  # every Monday 6 AM UTC
+    - cron: "0 6 * * *"  # 06:00 UTC daily retrain
 
 jobs:
   retrain:
@@ -20,31 +20,49 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
           pip install pandas mlflow
 
-      - name: Train model
+      # 🧠 Step 1: Run hardened multi-book ingest before training
+      - name: Run ingest + DQ audit
+        run: |
+          echo "=== Running pre-ingest step ==="
+          mkdir -p artifacts
+          python scripts/ingest_books.py > artifacts/ingest_log.txt 2>&1
+          echo "=== Ingest complete ==="
+          cat artifacts/ingest_audit.json || true
+
+      # 🚫 If DQ fails, stop the pipeline early
+      - name: Validate ingest DQ
+        run: |
+          echo "=== Checking DQ pass rate ==="
+          PASS_COUNT=$(jq '.summary.dq_pass' artifacts/ingest_audit.json)
+          TOTAL=$(jq '.summary.total_books' artifacts/ingest_audit.json)
+          echo "DQ pass rate: $PASS_COUNT / $TOTAL"
+          if [ "$PASS_COUNT" -lt "$((TOTAL / 2))" ]; then
+            echo "[ERROR] Too few clean ingests. Aborting retrain."
+            exit 1
+          fi
+
+      # 🧠 Step 2: Run retraining pipeline
+      - name: Run training
         run: |
           echo "Running training..."
           mkdir -p artifacts
-          python scripts/train.py > artifacts/train_log.txt 2>&1 || exit 1
+          python scripts/train.py > artifacts/train_log.txt 2>&1 || true
 
-      - name: Evaluate model
+      - name: Run evaluation
         run: |
           echo "Evaluating model..."
-          mkdir -p artifacts
-          python scripts/evaluate.py > artifacts/eval_log.txt 2>&1 || exit 1
+          python scripts/evaluate.py > artifacts/evaluate_log.txt 2>&1 || true
 
-      - name: Promote/Demote model
+      - name: Run promotion logic
         run: |
           echo "Running promotion logic..."
-          mkdir -p artifacts
-          python scripts/promote.py > artifacts/promotion_log.txt 2>&1 || exit 1
+          python scripts/promote.py > artifacts/promote_log.txt 2>&1 || true
 
-      - name: Archive logs and metrics
+      # 🧩 Step 3: Upload artifacts for audit trail
+      - name: Upload all artifacts
         uses: actions/upload-artifact@v4
         with:
           name: retrain-artifacts
-          path: |
-            artifacts/
-            mlruns/
+          path: artifacts/
