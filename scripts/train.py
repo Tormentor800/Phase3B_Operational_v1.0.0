@@ -2,8 +2,8 @@
 from pathlib import Path
 
 cfg = yaml.safe_load(open('config/mlflow.yaml'))
-mlflow.set_tracking_uri(os.getenv('MLFLOW_TRACKING_URI', cfg['tracking_uri']))
-mlflow.set_registry_uri(os.getenv('MLFLOW_REGISTRY_URI', cfg['registry_uri']))
+mlflow.set_tracking_uri("file:/tmp/mlruns")
+mlflow.set_registry_uri("file:/tmp/mlruns")
 exp = mlflow.set_experiment(cfg['experiment_name'])
 
 with mlflow.start_run(run_name='train_phase3'):
